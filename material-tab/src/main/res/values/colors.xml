@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="mth_text_disable">#90ffffff</color>
+    <color name="mth_text">#ffffffff</color>
+</resources>
