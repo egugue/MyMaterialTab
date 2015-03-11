@@ -5,6 +5,7 @@ import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -25,19 +26,29 @@ public class MainActivity extends ActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        MaterialTabHost host = (MaterialTabHost) findViewById(R.id.tabhost);
-        host.addTab("hoge");
-        host.addTab("あいう");
-        host.addTab("かきく");
-
         final ViewPager viewPager = (ViewPager) findViewById(R.id.view_pager);
         viewPager.setAdapter(new MyAdapter());
-        viewPager.setOnPageChangeListener(host);
 
-        host.setOnTabClickListener(new MaterialTabHost.OnTabClickListener() {
+        final MaterialTabHost host = (MaterialTabHost) findViewById(R.id.tabhost);
+        host.addTab("aaa");
+        host.addTab("bbb");
+        host.addTab("cc");
+        host.setViewPager(viewPager);
+        host.setOnPageChangeListener(new ViewPager.OnPageChangeListener() {
             @Override
-            public void onTabClick(int position) {
-                viewPager.setCurrentItem(position);
+            public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+                Log.d("MainActivity", "onPageScrolled");
+            }
+
+            @Override
+            public void onPageSelected(int position) {
+                Log.d("MainActivity", "onPageSelected");
+
+            }
+
+            @Override
+            public void onPageScrollStateChanged(int state) {
+                Log.d("MainActivity", "onPageScrollStateChanged");
             }
         });
     }
@@ -57,7 +68,6 @@ public class MainActivity extends ActionBarActivity {
 
         return super.onOptionsItemSelected(item);
     }
-
 
     private static class MyAdapter extends PagerAdapter {
 

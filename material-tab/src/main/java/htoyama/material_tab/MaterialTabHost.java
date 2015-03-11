@@ -17,20 +17,15 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 
-public class MaterialTabHost extends FrameLayout implements ViewPager.OnPageChangeListener{
-    private static final String TAG = MaterialTabHost.class.getSimpleName();
-
+public class MaterialTabHost extends FrameLayout {
     private final int DISABLE_COLOR = getResources().getColor(R.color.mth_text_disable);
     private final int ABLE_COLOR = getResources().getColor(R.color.mth_text);
+    private final int TAB_HEIGHT = getResources().getDimensionPixelSize(R.dimen.mth_height);
 
-    private int mScrollState;
     private ImageView mIndicatorImageView;
     private LinearLayout mTabContainerLayout;
-    private OnTabClickListener mOnTabClickListener;
-
-    public static interface OnTabClickListener {
-        public void onTabClick(int position);
-    }
+    private ViewPager mViewPager;
+    private ViewPager.OnPageChangeListener mOnPageChangeListener;
 
     public MaterialTabHost(Context context) {
         this(context, null);
@@ -41,63 +36,26 @@ public class MaterialTabHost extends FrameLayout implements ViewPager.OnPageChan
         init(attrs);
     }
 
+    public void setViewPager(ViewPager viewPager) {
+        mViewPager = viewPager;
+        mViewPager.setOnPageChangeListener(new InternalViewPagerListener());
+    }
+
+    public void setOnPageChangeListener(ViewPager.OnPageChangeListener onPageChangeListener) {
+        mOnPageChangeListener = onPageChangeListener;
+    }
+
     public void addTab(CharSequence title) {
-        final TextView tv = (TextView) LayoutInflater.from(getContext()).inflate(R.layout.tab_text, null);
+        final TextView tv = (TextView) LayoutInflater.from(getContext())
+                .inflate(R.layout.tab_text, null);
+        int textColor = mTabContainerLayout.getChildCount() == 0 ? ABLE_COLOR : DISABLE_COLOR;
+
+        tv.setTextColor(textColor);
         tv.setText(title);
-
-        int height = getContext().getResources().getDimensionPixelSize(R.dimen.mth_height);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, height, 1);
-        tv.setLayoutParams(lp);
-
-        int color = mTabContainerLayout.getChildCount() == 0 ? ABLE_COLOR : DISABLE_COLOR;
-        tv.setTextColor(color);
-
-        tv.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                int position = getChildPosition(v);
-                if (position < 0) return;
-
-                updateTab(position);
-                mIndicatorImageView.animate()
-                        .setDuration(200)
-                        .translationX(v.getX());
-
-                if (mOnTabClickListener != null) {
-                    mOnTabClickListener.onTabClick(position);
-                }
-            }
-        });
+        tv.setLayoutParams(new LinearLayout.LayoutParams(0, TAB_HEIGHT, 1));
+        tv.setOnClickListener(mInternalTabClickListener);
 
         mTabContainerLayout.addView(tv);
-    }
-
-    public void setOnTabClickListener(OnTabClickListener listener) {
-        mOnTabClickListener = listener;
-    }
-
-    @Override
-    public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
-        View view = mTabContainerLayout.getChildAt(position);
-        if (view == null) {
-            return;
-        }
-
-        int mark = (int) (view.getLeft() + positionOffset * view.getWidth());
-        mIndicatorImageView.setTranslationX(mark);
-        //mIndicatorImageView.setX(mark);
-    }
-
-    @Override
-    public void onPageSelected(int position) {
-        if (mScrollState == ViewPager.SCROLL_STATE_SETTLING) {
-            updateTab(position);
-        }
-    }
-
-    @Override
-    public void onPageScrollStateChanged(int state) {
-        mScrollState = state;
     }
 
     private void updateTab(int position) {
@@ -117,11 +75,6 @@ public class MaterialTabHost extends FrameLayout implements ViewPager.OnPageChan
 
     }
 
-    @Override
-    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
-        super.onSizeChanged(w, h, oldw, oldh);
-    }
-
     private void init(AttributeSet attrs) {
         LayoutInflater.from(getContext()).inflate(R.layout.merge_tab_host_content, this, true);
         mTabContainerLayout = (LinearLayout) findViewById(R.id.mtb_tab_conteiner);
@@ -130,6 +83,7 @@ public class MaterialTabHost extends FrameLayout implements ViewPager.OnPageChan
         TypedArray a = getContext().obtainStyledAttributes(attrs, R.styleable.MaterialTabHost);
         TypedValue outValue = new TypedValue();
         Resources.Theme theme = getContext().getTheme();
+        a.recycle();
 
         //setup Background color
         theme.resolveAttribute(R.attr.colorPrimary, outValue, true);
@@ -143,8 +97,6 @@ public class MaterialTabHost extends FrameLayout implements ViewPager.OnPageChan
         mIndicatorImageView.setImageDrawable(indicator);
 
         setupIndicatorHeight();
-
-        a.recycle();
     }
 
     private void setupIndicatorHeight() {
@@ -172,6 +124,55 @@ public class MaterialTabHost extends FrameLayout implements ViewPager.OnPageChan
             }
         }
         return -1;
+    }
+
+    private OnClickListener mInternalTabClickListener = new OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            int position = getChildPosition(v);
+            if (position >= 0) {
+                mViewPager.setCurrentItem(position);
+            }
+        }
+    };
+
+    private class InternalViewPagerListener implements ViewPager.OnPageChangeListener {
+        private int mScrollState;
+
+        @Override
+        public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+            View view = mTabContainerLayout.getChildAt(position);
+            if (view == null) {
+                return;
+            }
+
+            int mark = (int) (view.getLeft() + positionOffset * view.getWidth());
+            mIndicatorImageView.setTranslationX(mark);
+
+            if (mOnPageChangeListener != null) {
+                mOnPageChangeListener.onPageScrolled(position, positionOffset, positionOffsetPixels);
+            }
+        }
+
+        @Override
+        public void onPageSelected(int position) {
+            if (mScrollState == ViewPager.SCROLL_STATE_SETTLING) {
+                updateTab(position);
+            }
+
+            if (mOnPageChangeListener != null) {
+                mOnPageChangeListener.onPageSelected(position);
+            }
+        }
+
+        @Override
+        public void onPageScrollStateChanged(int state) {
+            mScrollState = state;
+
+            if (mOnPageChangeListener != null) {
+                mOnPageChangeListener.onPageScrollStateChanged(state);
+            }
+        }
     }
 
 }

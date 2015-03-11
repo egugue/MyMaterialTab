@@ -4,6 +4,6 @@ repositories {
 }
 
 dependencies {
-    compile 'com.egugue:my-material-tab:1.0.0'
+    compile 'com.egugue:my-material-tab:1.0.2'
 }
 ```
